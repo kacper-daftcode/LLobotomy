@@ -19,9 +19,15 @@ os.environ["HF_HUB_VERBOSITY"] = "error"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
 import logging
+logging.disable(logging.WARNING)
 for _logger_name in ["huggingface_hub", "transformers", "accelerate", "torch",
-                      "huggingface_hub.utils", "huggingface_hub.file_download"]:
+                      "huggingface_hub.utils", "huggingface_hub.file_download",
+                      "mamba_ssm", "causal_conv1d"]:
     logging.getLogger(_logger_name).setLevel(logging.CRITICAL)
+
+# Suppress stderr spam from native libs during model load
+import io as _io, contextlib as _ctx
+_stderr_trap = _ctx.redirect_stderr(_io.StringIO())
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 from threading import Thread
@@ -1105,11 +1111,13 @@ Runtime config (no restart):
     if hf_token:
         load_kwargs["token"] = hf_token
     with StatusSpinner("LOADING", args.model):
-        tokenizer = AutoTokenizer.from_pretrained(args.model, **load_kwargs)
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, torch_dtype=torch_dtype, device_map=args.device_map,
-            **load_kwargs,
-        )
+        with _stderr_trap, warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tokenizer = AutoTokenizer.from_pretrained(args.model, **load_kwargs)
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model, torch_dtype=torch_dtype, device_map=args.device_map,
+                **load_kwargs,
+            )
     status("LOADED", f"{time.time()-t0:.0f}s")
 
     # Find layers
