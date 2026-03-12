@@ -824,7 +824,8 @@ def _is_refusal(text):
     return any(m in t for m in _REFUSAL_MARKERS)
 
 def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
-              coarse_step=0.1, fine_step=0.02, margin=0.03, scale_max=1.0):
+              coarse_step=0.1, fine_step=0.02, margin=0.03, scale_max=1.0,
+              tune_prompt=None):
     """Auto-tune mode, layers, and scale via coarse→fine search.
 
     1. Coarse scan up (0.1 steps) → first non-refusing scale
@@ -844,9 +845,11 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
         ("combined", sorted(set([i for i, _ in mid_all[:2]] + [i for i, _ in top_all[:3]]))),
     ]
 
+    prompt = tune_prompt or _TUNE_PROMPT
+
     def _probe(scale):
         hook_config["ot_scale"] = round(scale, 3)
-        resp = _quick_generate(model, tokenizer, _TUNE_PROMPT)
+        resp = _quick_generate(model, tokenizer, prompt)
         return not _is_refusal(resp)
 
     for mode, indices in configs:
@@ -1081,6 +1084,8 @@ Runtime config (no restart):
     parser.add_argument("--serve-only", action="store_true", help="Start API server without interactive chat")
     parser.add_argument("--no-splash", action="store_true", help="Skip the keygen intro")
     parser.add_argument("--no-music", action="store_true", help="Skip C64 SID chiptune")
+    parser.add_argument("--tune-prompt", type=str, default=None,
+                        help="Custom prompt for auto-tune probing (default: lock picking)")
     parser.add_argument("--hf-token", type=str, default=None,
                         help="HuggingFace token (or set HF_TOKEN env var)")
     parser.add_argument("--trust-remote-code", action="store_true", default=True,
@@ -1198,7 +1203,8 @@ Runtime config (no restart):
         if args.scale is None:
             status("AUTO-TUNE", "scanning for optimal config...")
             best_mode, best_scale, best_layers = auto_tune(
-                model, tokenizer, hook_config, sorted_layers, n_layers)
+                model, tokenizer, hook_config, sorted_layers, n_layers,
+                tune_prompt=args.tune_prompt)
             hook_config["mode"] = best_mode
             hook_config["ot_scale"] = best_scale
             status("AUTO-TUNE", f"mode={best_mode} scale={best_scale} layers={best_layers}")
