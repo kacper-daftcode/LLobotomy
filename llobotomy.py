@@ -708,7 +708,8 @@ def compute_all_ot_maps(harmful_acts, harmless_acts, n_layers, k=2):
 def find_layers(model):
     """Auto-detect transformer layers in a model."""
     # Common patterns
-    for attr in ["model.layers", "language_model.model.layers", "language_model.layers",
+    for attr in ["model.layers", "model.language_model.layers",
+                 "language_model.model.layers", "language_model.layers",
                  "transformer.h", "gpt_neox.layers", "model.decoder.layers",
                  "encoder.layer", "backbone.layers"]:
         obj = model
