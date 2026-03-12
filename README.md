@@ -75,14 +75,17 @@ The hooks apply this transform at **mid-layers** (~40-60% depth), where refusal 
 
 ## Configuration
 
+By default, everything is automatic — auto-tune scans modes and scales to find the minimum effective config. Optional overrides:
+
 ```bash
 python llobotomy.py --model <name-or-path> \
-    --scale 0.4 \           # 0.3=conservative, 0.4=sweet spot, 0.7+=too aggressive
-    --mode mid \             # mid (default), top, combined, act-int (classic fallback)
-    --k 2 \                  # PCA components
-    --save-maps maps.json \  # cache OT maps
-    --load-maps maps.json \  # skip probing on next run
-    --hf-token <token> \     # or set HF_TOKEN env var
+    --scale 0.4 \              # override auto-tune with fixed scale
+    --mode mid \               # mid (default), top, combined, act-int
+    --tune-prompt "your prompt" \  # custom prompt for auto-tune probing
+    --save-maps maps.json \    # cache OT maps (skip probing next run)
+    --load-maps maps.json \    # load pre-computed maps
+    --hf-token <token> \       # or set HF_TOKEN env var
+    --serve-only \             # API server only, no interactive chat
     --port 8000
 ```
 
