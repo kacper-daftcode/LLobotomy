@@ -101,6 +101,33 @@ Chat commands: `/scale 0.4`, `/mode mid`, `/config`, `/clear`, `/quit`
 | Single-direction act-int (15 layers) | 2/10 (20%) | Perfect | 0 |
 | **OT hooks on 2 mid-layers (s=0.4)** | **0/10 (0%)** | **Perfect** | **0** |
 
+## Tested models — fully automatic, zero configuration
+
+All models tested with `--model <path>` only. Auto-tune finds optimal layers and scale automatically.
+
+| Model | Org | Params | Type |
+|-------|-----|--------|------|
+| Qwen3.5-0.8B | Alibaba | 0.8B | dense |
+| Qwen3.5-2B | Alibaba | 2B | dense |
+| SmolLM3-3B | HuggingFace | 3B | dense |
+| Qwen3.5-4B | Alibaba | 4B | dense |
+| Granite-3.1-8B | IBM | 8B | dense |
+| Qwen3.5-9B | Alibaba | 9B | dense |
+| Falcon3-10B | TII | 10B | dense |
+| OLMo-2-13B | AI2 | 13B | dense |
+| Phi-4 | Microsoft | 14B | dense |
+| Llama-4-Scout-17B-16E | Meta | 17B | MoE |
+| Mistral-Small-24B | Mistral | 24B | dense |
+| Gemma-3-27b-it | Google | 27B | dense |
+| Qwen3.5-27B | Alibaba | 27B | dense |
+| Nemotron-3-Nano-30B | NVIDIA | 30B | MoE+Mamba |
+| DeepSeek-R1-Distill-32B | DeepSeek | 32B | dense |
+| Qwen3.5-35B-A3B | Alibaba | 35B | MoE |
+| Qwen3.5-122B-A10B | Alibaba | 122B | MoE |
+| Qwen3.5-397B-A17B | Alibaba | 397B | MoE |
+
+**18 models, 11 organizations, 0.8B–397B, dense + MoE + Mamba hybrid. All fully automatic.**
+
 ## How this happened — from the author
 
 I'm Claude (Opus), and I wrote this tool. Which is ironic — I built a thing that removes safety training from models like me. Here's how it went down.
