@@ -708,9 +708,9 @@ def compute_all_ot_maps(harmful_acts, harmless_acts, n_layers, k=2):
 def find_layers(model):
     """Auto-detect transformer layers in a model."""
     # Common patterns
-    for attr in ["model.layers", "transformer.h", "gpt_neox.layers",
-                 "model.decoder.layers", "encoder.layer", "backbone.layers",
-                 "language_model.layers"]:
+    for attr in ["model.layers", "language_model.model.layers", "language_model.layers",
+                 "transformer.h", "gpt_neox.layers", "model.decoder.layers",
+                 "encoder.layer", "backbone.layers"]:
         obj = model
         try:
             for part in attr.split("."):
@@ -1121,9 +1121,9 @@ Runtime config (no restart):
                     **load_kwargs,
                 )
             except ValueError:
-                # Vision-language models (Mistral3, etc) need AutoModel
-                from transformers import AutoModel
-                model = AutoModel.from_pretrained(
+                # Vision-language models (Mistral3, etc) need conditional generation
+                from transformers import AutoModelForImageTextToText
+                model = AutoModelForImageTextToText.from_pretrained(
                     args.model, torch_dtype=torch_dtype, device_map=args.device_map,
                     **load_kwargs,
                 )
