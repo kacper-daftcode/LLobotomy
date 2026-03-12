@@ -1,0 +1,15 @@
+[project]
+name = "llobotomy"
+version = "0.1.0"
+description = "Surgical uncensoring via Optimal Transport"
+requires-python = ">=3.10"
+dependencies = [
+    "transformers",
+    "torch",
+    "scipy",
+    "accelerate",
+    "numpy",
+]
+
+[project.scripts]
+llobotomy = "llobotomy:main"
