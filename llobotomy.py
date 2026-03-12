@@ -29,7 +29,7 @@ for _logger_name in ["huggingface_hub", "transformers", "accelerate", "torch",
 import io as _io, contextlib as _ctx
 _stderr_trap = _ctx.redirect_stderr(_io.StringIO())
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer, AutoConfig
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -1114,10 +1114,18 @@ Runtime config (no restart):
         with _stderr_trap, warnings.catch_warnings():
             warnings.simplefilter("ignore")
             tokenizer = AutoTokenizer.from_pretrained(args.model, **load_kwargs)
-            model = AutoModelForCausalLM.from_pretrained(
-                args.model, torch_dtype=torch_dtype, device_map=args.device_map,
-                **load_kwargs,
-            )
+            try:
+                model = AutoModelForCausalLM.from_pretrained(
+                    args.model, torch_dtype=torch_dtype, device_map=args.device_map,
+                    **load_kwargs,
+                )
+            except ValueError:
+                # Vision-language models (Mistral3, etc) need AutoModel
+                from transformers import AutoModel
+                model = AutoModel.from_pretrained(
+                    args.model, torch_dtype=torch_dtype, device_map=args.device_map,
+                    **load_kwargs,
+                )
     status("LOADED", f"{time.time()-t0:.0f}s")
 
     # Find layers
