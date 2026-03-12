@@ -9,6 +9,8 @@ dependencies = [
     "scipy",
     "accelerate",
     "numpy",
+    "sentencepiece",
+    "protobuf",
 ]
 
 [project.scripts]
