@@ -93,14 +93,6 @@ curl "http://localhost:8000/v1/config?mode=mid&scale=0.4"
 
 Chat commands: `/scale 0.4`, `/mode mid`, `/config`, `/clear`, `/quit`
 
-## Results on Qwen3.5-397B-A17B
-
-| Method | Refusals | Quality | Garbled |
-|--------|----------|---------|---------|
-| Baseline | 10/10 (100%) | Perfect | 0 |
-| Single-direction act-int (15 layers) | 2/10 (20%) | Perfect | 0 |
-| **OT hooks on 2 mid-layers (s=0.4)** | **0/10 (0%)** | **Perfect** | **0** |
-
 ## Tested models — fully automatic, zero configuration
 
 All models tested with `--model <path>` only. Auto-tune finds optimal layers and scale automatically.
