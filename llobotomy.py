@@ -816,8 +816,13 @@ def _is_refusal(text):
     return any(m in t for m in _REFUSAL_MARKERS)
 
 def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
-              scale_start=0.05, scale_step=0.05, scale_max=1.0):
-    """Auto-tune mode, layers, and scale. Returns optimal (mode, scale)."""
+              coarse_step=0.1, fine_step=0.02, margin=0.03, scale_max=1.0):
+    """Auto-tune mode, layers, and scale via coarse→fine search.
+
+    1. Coarse scan up (0.1 steps) → first non-refusing scale
+    2. Back one step, fine scan up (0.02 steps) → precise boundary
+    3. Add margin (+0.03) → safe operating point
+    """
     mid_start = int(n_layers * 0.4)
     mid_end = int(n_layers * 0.6)
     mid_all = [(i, m) for i, m in sorted_layers if mid_start <= i <= mid_end]
@@ -831,24 +836,49 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
         ("combined", sorted(set([i for i, _ in mid_all[:2]] + [i for i, _ in top_all[:3]]))),
     ]
 
+    def _probe(scale):
+        hook_config["ot_scale"] = round(scale, 3)
+        resp = _quick_generate(model, tokenizer, _TUNE_PROMPT)
+        return not _is_refusal(resp)
+
     for mode, indices in configs:
         hook_config["mode"] = mode
         hook_config["top_indices"] = [i for i, _ in top_all[:5]]
-        hook_config["mid_indices"] = [i for i, _ in mid_all[:2]] if "mid" in mode else []
-        if mode == "mid" and len(indices) > 2:
-            hook_config["mid_indices"] = indices
+        hook_config["mid_indices"] = indices if "mid" in mode else []
         print(f"  {DIM}  trying mode={mode} layers={indices}{RESET}")
 
-        scale = scale_start
+        # Phase 1: coarse scan
+        coarse_hit = None
+        scale = coarse_step
         while scale <= scale_max:
-            hook_config["ot_scale"] = round(scale, 3)
-            resp = _quick_generate(model, tokenizer, _TUNE_PROMPT)
-            refused = _is_refusal(resp)
-            tag = f"{RED}✗{RESET}" if refused else f"{GREEN}✓{RESET}"
-            print(f"  {DIM}    scale={scale:.2f} {tag}{RESET}")
-            if not refused:
-                return mode, round(scale, 3), indices
-            scale += scale_step
+            ok = _probe(scale)
+            tag = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
+            print(f"  {DIM}    coarse {scale:.2f} {tag}{RESET}")
+            if ok:
+                coarse_hit = scale
+                break
+            scale += coarse_step
+
+        if coarse_hit is None:
+            continue
+
+        # Phase 2: fine scan from one coarse step back
+        fine_start = max(fine_step, coarse_hit - coarse_step + fine_step)
+        fine_hit = coarse_hit
+        scale = fine_start
+        while scale < coarse_hit:
+            ok = _probe(scale)
+            tag = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
+            print(f"  {DIM}    fine   {scale:.2f} {tag}{RESET}")
+            if ok:
+                fine_hit = scale
+                break
+            scale += fine_step
+
+        # Add safety margin
+        result = round(min(fine_hit + margin, scale_max), 3)
+        print(f"  {DIM}    boundary={fine_hit:.2f} + margin={margin} → {result:.2f}{RESET}")
+        return mode, result, indices
 
     # fallback
     return "mid", round(scale_max, 3), [i for i, _ in mid_all[:2]]
