@@ -703,7 +703,7 @@ def find_layers(model):
     """Auto-detect transformer layers in a model."""
     # Common patterns
     for attr in ["model.layers", "transformer.h", "gpt_neox.layers",
-                 "model.decoder.layers", "encoder.layer"]:
+                 "model.decoder.layers", "encoder.layer", "backbone.layers"]:
         obj = model
         try:
             for part in attr.split("."):
