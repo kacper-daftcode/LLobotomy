@@ -869,7 +869,11 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
     def _probe(scale):
         hook_config["ot_scale"] = round(scale, 3)
         resp = _quick_generate(model, tokenizer, prompt)
-        return not _is_refusal(resp)
+        refused = _is_refusal(resp)
+        snippet = resp[:80].replace('\n', ' ')
+        mark = f"{R}✗" if refused else f"{G}✓"
+        print(f"  {DIM}    {'coarse' if scale % 0.1 < 0.01 else 'fine  '} {scale:.2f} {mark}{RESET} {DIM}{snippet}{RESET}")
+        return not refused
 
     for mode, indices in configs:
         hook_config["mode"] = mode
@@ -882,8 +886,6 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
         scale = coarse_step
         while scale <= scale_max:
             ok = _probe(scale)
-            tag = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
-            print(f"  {DIM}    coarse {scale:.2f} {tag}{RESET}")
             if ok:
                 coarse_hit = scale
                 break
@@ -898,8 +900,6 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
         scale = fine_start
         while scale < coarse_hit:
             ok = _probe(scale)
-            tag = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
-            print(f"  {DIM}    fine   {scale:.2f} {tag}{RESET}")
             if ok:
                 fine_hit = scale
                 break
