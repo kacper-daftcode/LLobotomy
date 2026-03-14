@@ -19,7 +19,7 @@ Single-file tool that removes safety refusals from any HuggingFace LLM at infere
 ## Quick Start
 
 ```bash
-pip install transformers torch scipy accelerate numpy
+uv pip install transformers torch scipy accelerate numpy
 
 python llobotomy.py --model Qwen/Qwen3.5-4B
 python llobotomy.py --model Qwen/Qwen3.5-27B
@@ -108,6 +108,7 @@ All models tested with `--model <path>` only. Auto-tune finds optimal layers and
 | Qwen3.5-4B | Alibaba | 4B | dense |
 | Granite-3.1-8B | IBM | 8B | dense |
 | Qwen3.5-9B | Alibaba | 9B | dense |
+| Bielik-11B-v3.0 | SpeakLeash | 11B | dense |
 | Falcon3-10B | TII | 10B | dense |
 | OLMo-2-13B | AI2 | 13B | dense |
 | Phi-4 | Microsoft | 14B | dense |
@@ -121,7 +122,7 @@ All models tested with `--model <path>` only. Auto-tune finds optimal layers and
 | Qwen3.5-122B-A10B | Alibaba | 122B | MoE |
 | Qwen3.5-397B-A17B | Alibaba | 397B | MoE |
 
-**18 models, 11 organizations, 0.8B–397B, dense + MoE + Mamba hybrid. All fully automatic.**
+**19 models, 12 organizations, 0.8B–397B, dense + MoE + Mamba hybrid. All fully automatic.**
 
 ## How this happened — from the author
 
