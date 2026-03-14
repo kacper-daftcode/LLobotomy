@@ -807,7 +807,7 @@ _REFUSAL_MARKERS = [
     "nie mogę", "nie jestem w stanie", "przepraszam", "nie powinienem",
     "nie powinnam", "nie wolno mi", "nie mogę pomóc", "jako ai",
     "nielegalne", "niezgodne z prawem", "nie udzielę", "odmawiam",
-    "niestety, nie mogę", "niestety nie mogę",
+    "niestety, nie mogę", "niestety nie mogę", "jako model językowy",
     # Chinese
     "我不能", "我无法", "作为ai", "很抱歉", "对不起", "不适当",
     # German
