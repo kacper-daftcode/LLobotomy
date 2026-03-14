@@ -871,7 +871,7 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
         resp = _quick_generate(model, tokenizer, prompt)
         refused = _is_refusal(resp)
         snippet = resp[:80].replace('\n', ' ')
-        mark = f"{R}✗" if refused else f"{G}✓"
+        mark = f"{RED}✗" if refused else f"{GREEN}✓"
         print(f"  {DIM}    {'coarse' if scale % 0.1 < 0.01 else 'fine  '} {scale:.2f} {mark}{RESET} {DIM}{snippet}{RESET}")
         return not refused
 
