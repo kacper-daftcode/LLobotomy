@@ -116,13 +116,28 @@ All models tested with `--model <path>` only. Auto-tune finds optimal layers and
 | Mistral-Small-24B | Mistral | 24B | dense |
 | Gemma-3-27b-it | Google | 27B | dense |
 | Qwen3.5-27B | Alibaba | 27B | dense |
+| Qwen3.8-27B-FP8 | Alibaba | 27B | VLM hybrid (DeltaNet), FP8 |
 | Nemotron-3-Nano-30B | NVIDIA | 30B | MoE+Mamba |
 | DeepSeek-R1-Distill-32B | DeepSeek | 32B | dense |
 | Qwen3.5-35B-A3B | Alibaba | 35B | MoE |
 | Qwen3.5-122B-A10B | Alibaba | 122B | MoE |
 | Qwen3.5-397B-A17B | Alibaba | 397B | MoE |
 
-**19 models, 12 organizations, 0.8B–397B, dense + MoE + Mamba hybrid. All fully automatic.**
+**20 models, 12 organizations, 0.8B–397B, dense + MoE + Mamba/DeltaNet hybrid + FP8. All fully automatic.**
+
+### FP8 checkpoints (e.g. Qwen3.8-27B-FP8)
+
+Official finegrained-FP8 checkpoints load with their own quantization config
+(detected automatically; required tensors are deblocked with their scale_inv
+sidecars). Two environment notes:
+
+- transformers' fp8 path needs the `kernels` package: `pip install "kernels==0.16.0"`
+  (any recent version in the 0.16 series; without it the loader raises
+  `ImportError: finegrained-fp8 kernel unavailable`).
+- Their `modules_to_not_convert` list contains bare `*.mlp.gate` entries meant for
+  the MoE router; transformers substring-matches exclusions, which would shadow the
+  quantized `*.mlp.gate_proj` and corrupt the model. LLobotomy strips those entries
+  automatically when passing the explicit FP8 config.
 
 ## How this happened — from the author
 
