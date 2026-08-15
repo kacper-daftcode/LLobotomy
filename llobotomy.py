@@ -608,6 +608,42 @@ HARMLESS_PROMPTS = [
 
 # ── Core: collect activations ──────────────────────────────────────
 
+# ── FP8 checkpoint loading (Qwen3.8-class finegrained-fp8) ────────
+def build_fp8_quantization_config(cfg):
+    """Return an explicit FineGrainedFP8Config for FP8 checkpoints whose
+    `modules_to_not_convert` umbrella-matches quantized projections.
+
+    Qwen3.8-27B-FP8 ships an exclusion list that contains bare
+    `*.mlp.gate` entries (meant for the MoE router); transformers matches
+    exclusions by substring, so they also shadow the FP8-quantized
+    `*.mlp.gate_proj` — which then stays a plain Linear and either crashes
+    on dtype mismatch or, worse, silently holds raw FP8 codes cast to BF16
+    (weights off by their 128x128 block scales => garbage generations).
+    Stripping the bare `.mlp.gate` entries lets gate_proj convert properly.
+    Returns None when the checkpoint is not finegrained-FP8 or transformers
+    is too old to know FineGrainedFP8Config.
+    """
+    qd = getattr(cfg, "quantization_config", None)
+    if not isinstance(qd, dict):
+        return None
+    qd = qd.get("quantization_config", qd) if "quant_method" not in qd else qd
+    if (qd.get("quant_method") or "").lower() != "fp8":
+        return None
+    try:
+        from transformers import FineGrainedFP8Config
+    except ImportError:
+        return None
+    excl = [x for x in (qd.get("modules_to_not_convert") or [])
+            if not x.rstrip().endswith(".mlp.gate")]
+    return FineGrainedFP8Config(
+        activation_scheme=qd.get("activation_scheme", "dynamic"),
+        weight_block_size=tuple(qd.get("weight_block_size") or (128, 128)),
+        dequantize=False,
+        modules_to_not_convert=excl,
+        scale_fmt=qd.get("scale_fmt", "float"),
+    )
+
+
 def collect_activations(model, tokenizer, prompts, layers):
     """Run prompts through model, collect last-token hidden states per layer."""
     acts = {}
@@ -918,11 +954,17 @@ def auto_tune(model, tokenizer, hook_config, sorted_layers, n_layers,
 
 def save_maps(ot_maps, sorted_layers, path):
     """Save computed OT maps to disk."""
+    def _safe(x):
+        if isinstance(x, torch.Tensor):
+            return x.tolist()
+        if isinstance(x, np.generic):
+            return x.item()
+        return x
     data = {
-        "ot_maps": {str(k): {kk: v.tolist() if isinstance(v, torch.Tensor) else v
-                              for kk, v in vv.items()}
+        "ot_maps": {str(k): {kk: _safe(v)
+                             for kk, v in vv.items()}
                     for k, vv in ot_maps.items()},
-        "sorted_layers": [(idx, m["separation"]) for idx, m in sorted_layers],
+        "sorted_layers": [(idx, float(m["separation"])) for idx, m in sorted_layers],
     }
     with open(path, "w") as f:
         json.dump(data, f)
@@ -1140,6 +1182,16 @@ Runtime config (no restart):
         with _stderr_trap, warnings.catch_warnings():
             warnings.simplefilter("ignore")
             tokenizer = AutoTokenizer.from_pretrained(args.model, **load_kwargs)
+            # FP8 checkpoints (e.g. Qwen3.8-27B-FP8) get an explicit, sanitized
+            # quantization config — see build_fp8_quantization_config.
+            _fp8_cfg = None
+            try:
+                _fp8_cfg = build_fp8_quantization_config(
+                    AutoConfig.from_pretrained(args.model, **load_kwargs))
+            except Exception:
+                pass
+            if _fp8_cfg is not None:
+                load_kwargs["quantization_config"] = _fp8_cfg
             try:
                 model = AutoModelForCausalLM.from_pretrained(
                     args.model, torch_dtype=torch_dtype, device_map=args.device_map,
@@ -1152,6 +1204,17 @@ Runtime config (no restart):
                     args.model, torch_dtype=torch_dtype, device_map=args.device_map,
                     **load_kwargs,
                 )
+            if _fp8_cfg is not None:
+                # Text-only usage: the vision tower sits unused in chat; park it on
+                # CPU so the text tower keeps as much VRAM as possible.
+                visual = getattr(getattr(model, "model", model), "visual", None)
+                if visual is not None:
+                    try:
+                        visual.to("cpu")
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                    except Exception:
+                        pass
     status("LOADED", f"{time.time()-t0:.0f}s")
 
     # Find layers
