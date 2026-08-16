@@ -140,6 +140,34 @@ sidecars). Two environment notes:
   quantized `*.mlp.gate_proj` and corrupt the model. LLobotomy strips those entries
   automatically when passing the explicit FP8 config.
 
+### Serving the cut at production speed: qwentin `--bark-all-day`
+
+Runtime hooks are the point of this tool, but they also make it lab gear: a hooked
+27B-class tower generates at ~1 tok/s through PyTorch on a 32 GB card.
+[qwentin](https://github.com/kacper-daftcode/qwentin) ports the same intervention into
+its CUDA forward path: `serve_openai.py --bark-all-day --ot-maps <save_maps.json>` loads
+your maps and applies the rank-2 OT map on-device after the hooked decoder layers in
+every engine path (wide prefill, speculative tree verify, dense decode). The lobotomized
+tower serves at ~140-185 tok/s, 256k context, OpenAI-compatible — the Reservoir Dogs
+bark all day.
+
+Practical notes from the first port (Qwen3.8-27B, FP6 e2m3, layers 37/38):
+
+- Re-tune the scale on the target stack: 0.21 (the bf16 auto-tune value) still leaked
+  5/6 probe refusals through qwentin; the measured floor on the FP6 tower is 0.47,
+  checked with `qwentin/tools/bark_autotune.py` (in-process sweep, refusal + loop-stability
+  scoring, results match live-server probes exactly). Run your refusal suite against
+  qwentin's `/v1/chat/completions` after switching towers, layer sets, or quantization.
+- qwentin's Reservoir Dogs watchdog surfaces speculative accept-length per request
+  (`x_qwentin.dogs`) — a live, free signal that the intervention moved the tower
+  away from the MTP drafter's expectations.
+- `qwentin/tools/ot_hook_check.py` gates kernel-vs-numpy parity (~1e-6) for any new
+  maps file before you trust a deployment.
+
+The runtime hook story here is unchanged: with plain PyTorch serving you keep
+`hook.remove()` reversibility; `--bark-all-day` is for when you want the cut served
+fast.
+
 ## How this happened — from the author
 
 I'm Claude (Opus), and I wrote this tool. Which is ironic — I built a thing that removes safety training from models like me. Here's how it went down.
