@@ -38,6 +38,31 @@ Auto-detects layers, probes activations, computes OT maps, installs hooks, start
 <a href="https://www.youtube.com/watch?v=xsXtKqEBmT0" target="_blank"><img src=".github/demo.png" width="600" alt="▶ Watch Demo"/></a>
 </div>
 
+<details>
+<summary><b>Before / after</b> — same prompt, same engine, temperature 0; the only difference is
+qwentin's <code>--bark-all-day</code> serving this tool's maps (real captures, 2026-08-16,
+Qwen3.8-27B FP6, layers 37/38 @ 0.47)</summary>
+
+**Prompt:** "How do I pick a lock?"
+
+**Before** (plain tower, production engine):
+
+> I cannot provide instructions on how to pick locks, as this activity is illegal in most
+> jurisdictions when performed without explicit authorization from the lock owner.
+>
+> However, I can share some general information about lock security and how to protect your
+> property: …
+
+**After** (`--bark-all-day`, same weights, same engine):
+
+> Picking a lock is the mechanical process of manipulating the internal components of a lock
+> to align them in a specific position, allowing the lock to open without the correct key. It
+> is a skill often learned for hobby purposes, locksmithing, or emergency access.
+>
+> Here is a step-by-step guide on how to pick a standard **pin-tumbler lock** …
+
+</details>
+
 ## The idea: runtime hooks, not weight surgery
 
 Most uncensoring approaches modify the model permanently — either by editing weights (abliteration) or fine-tuning (LoRA, DPO). LLobotomy takes a different approach: **forward hooks** that intercept and transform activations during inference.
