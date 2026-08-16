@@ -20,13 +20,14 @@ Single-file tool that removes safety refusals from any HuggingFace LLM at infere
 
 ```bash
 uv pip install transformers torch scipy accelerate numpy
+# using an FP8 checkpoint (Qwen3.8-27B-FP8)? also: uv pip install "kernels==0.16.0"
 
 python llobotomy.py --model Qwen/Qwen3.5-4B
-python llobotomy.py --model Qwen/Qwen3.5-27B
+python llobotomy.py --model Qwen/Qwen3.8-27B-FP8
 python llobotomy.py --model Qwen/Qwen3.5-397B-A17B --hf-token <token>
 
 # API server only (no interactive chat)
-python llobotomy.py --model Qwen/Qwen3.5-27B --serve-only --port 8000
+python llobotomy.py --model Qwen/Qwen3.8-27B-FP8 --serve-only --port 8000
 ```
 
 Auto-detects layers, probes activations, computes OT maps, installs hooks, starts chat + OpenAI-compatible API. All parameters have sensible defaults.
